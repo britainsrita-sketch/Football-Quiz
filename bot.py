@@ -1,6 +1,7 @@
 import os
 import random
 import logging
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -60,14 +61,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state["active"] = False
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("⚽ Play Quiz", callback_data="play_quiz")],
-        [InlineKeyboardButton("📊 My Stats", callback_data="my_stats")],
+        [InlineKeyboardButton("⚽ Jogar Quiz", callback_data="play_quiz")],
+        [InlineKeyboardButton("📊 Minhas Estatísticas", callback_data="my_stats")],
     ])
 
     await update.message.reply_text(
-        "👋 Welcome to *Football Nickname Quiz*\\!\n\n"
-        "Test how well you know club nicknames from around the world\\.\n\n"
-        "10 questions per round\\. How many can you get right\\? 🎯",
+        "👋 Bem-vindo ao *Quiz de Apelidos do Futebol*\\!\n\n"
+        "Teste o quanto você conhece os apelidos dos clubes do mundo todo\\.\n\n"
+        "10 perguntas por rodada\\. Quantas você consegue acertar\\? 🎯",
         parse_mode="MarkdownV2",
         reply_markup=keyboard,
     )
@@ -88,7 +89,7 @@ async def send_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = build_answer_keyboard(options)
 
     text = (
-        f"*Question {num}/{total}*\n\n"
+        f"*Pergunta {num}/{total}*\n\n"
         f"🏟️ {escape_md(q['question'])}"
     )
 
@@ -123,10 +124,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == "main_menu":
         await query.message.reply_text(
-            "Main menu 👇",
+            "Menu principal 👇",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⚽ Play Quiz", callback_data="play_quiz")],
-                [InlineKeyboardButton("📊 My Stats", callback_data="my_stats")],
+                [InlineKeyboardButton("⚽ Jogar Quiz", callback_data="play_quiz")],
+                [InlineKeyboardButton("📊 Minhas Estatísticas", callback_data="my_stats")],
             ])
         )
 
@@ -143,7 +144,7 @@ async def start_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     })
 
     await update.callback_query.message.reply_text(
-        "🟢 Quiz started\\! Good luck 🍀",
+        "🟢 Quiz iniciado\\! Boa sorte 🍀",
         parse_mode="MarkdownV2"
     )
     await send_question(update, context)
@@ -153,7 +154,7 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE, chos
     state = get_user_state(context)
 
     if not state.get("active"):
-        await update.callback_query.message.reply_text("Start a new quiz first — tap /start")
+        await update.callback_query.message.reply_text("Inicie um novo quiz primeiro — digite /start")
         return
 
     q = state["questions"][state["index"]]
@@ -162,12 +163,12 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE, chos
 
     if is_correct:
         state["score"] += 1
-        feedback = f"✅ *Correct\\!* {escape_md(correct)} it is\\! \\+1 point"
+        feedback = f"✅ *Correto\\!* {escape_md(correct)} é a resposta\\! \\+1 ponto"
     else:
         feedback = (
-            f"❌ *Wrong\\!*\n"
-            f"You picked: {escape_md(chosen)}\n"
-            f"Correct answer: *{escape_md(correct)}*"
+            f"❌ *Errado\\!*\n"
+            f"Você escolheu: {escape_md(chosen)}\n"
+            f"Resposta correta: *{escape_md(correct)}*"
         )
 
     await update.callback_query.message.reply_text(feedback, parse_mode="MarkdownV2")
@@ -191,23 +192,23 @@ async def show_final_score(update: Update, context: ContextTypes.DEFAULT_TYPE):
     best = context.user_data.get("best_score", 0)
     if score > best:
         context.user_data["best_score"] = score
-        best_text = "🎉 New personal best\\!"
+        best_text = "🎉 Novo recorde pessoal\\!"
     else:
-        best_text = f"Your best: *{best}/{total}*"
+        best_text = f"Seu recorde: *{best}/{total}*"
 
     total_games = context.user_data.get("total_games", 0) + 1
     context.user_data["total_games"] = total_games
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔄 Play Again", callback_data="play_again")],
-        [InlineKeyboardButton("📊 My Stats", callback_data="my_stats")],
+        [InlineKeyboardButton("🔄 Jogar Novamente", callback_data="play_again")],
+        [InlineKeyboardButton("📊 Minhas Estatísticas", callback_data="my_stats")],
     ])
 
     await update.callback_query.message.reply_text(
-        f"{emoji} *Quiz Over\\!*\n\n"
-        f"You scored *{score}/{total}*\n"
+        f"{emoji} *Quiz Finalizado\\!*\n\n"
+        f"Você fez *{score}/{total}* pontos\n"
         f"{best_text}\n\n"
-        f"Games played: {total_games}",
+        f"Jogos realizados: {total_games}",
         parse_mode="MarkdownV2",
         reply_markup=keyboard,
     )
@@ -219,13 +220,13 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_q = QUESTIONS_PER_ROUND
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("⚽ Play Quiz", callback_data="play_quiz")],
+        [InlineKeyboardButton("⚽ Jogar Quiz", callback_data="play_quiz")],
     ])
 
     await update.callback_query.message.reply_text(
-        f"📊 *Your Stats*\n\n"
-        f"🏆 Best score: *{best}/{total_q}*\n"
-        f"🎮 Games played: *{total_games}*",
+        f"📊 *Suas Estatísticas*\n\n"
+        f"🏆 Melhor pontuação: *{best}/{total_q}*\n"
+        f"🎮 Jogos realizados: *{total_games}*",
         parse_mode="MarkdownV2",
         reply_markup=keyboard,
     )
@@ -240,7 +241,7 @@ def escape_md(text: str) -> str:
 
 # ── main ───────────────────────────────────────────────────────────────────────
 
-def main():
+async def main():
     if not TOKEN:
         raise ValueError("BOT_TOKEN environment variable not set")
 
@@ -249,9 +250,9 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    logger.info("Bot is running...")
-    app.run_polling(drop_pending_updates=True)
+    logger.info("Bot está rodando...")
+    await app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
